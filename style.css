@@ -1,0 +1,30 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f4f4f4;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 24px;
+}
+
+#avatar-container {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 20px;
+}
+
+.chatbox {
+  margin: 20px auto;
+  max-width: 600px;
+  text-align: left;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+#speak-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+}
