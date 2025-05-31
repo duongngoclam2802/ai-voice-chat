@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Game Đố Vui Có Đồng Hồ Góc Phải</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #c2e9fb, #a1c4fd);
+      /* Không set overflow hidden, để cho phép cuộn trang */
+      overflow-y: auto;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start; /* cho phép cuộn */
+      padding: 20px 0;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    #loading {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #fff;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #loading img {
+      width: 100px;
+      height: 100px;
+    }
+
+    .quiz-container {
+      display: none;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+      max-width: 700px;
+      width: 95%;
+      background: #fff;
+      text-align: center;
+      position: relative;
+      padding-top: 70px; /* khoảng trống cho đồng hồ */
+      box-sizing: border-box;
+    }
+
+    h1 {
+      color: #00695c;
+      margin-bottom: 10px;
+    }
+
+    .icon {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    #question {
+      font-size: 22px;
+      margin-bottom: 15px;
+      color: #333;
+      position: relative;
+      z-index: 10;
+      padding-right: 100px; /* tránh chèn lên đồng hồ */
+      word-wrap: break-word;
+    }
+
+    /* Đồng hồ tròn góc trên phải */
+    #timer {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 60px;
+      height: 60px;
+      user-select: none;
+      z-index: 1;
+    }
+
+    svg {
+      transform: rotate(-90deg);
+      width: 60px;
+      height: 60px;
+    }
+
+    circle {
+      fill: none;
+      stroke-width: 6;
+      stroke-linecap: round;
+    }
+
+    #timer-bg {
+      stroke: #eee;
+    }
+
+    #timer-fg {
+      stroke: #00796b;
+      transition: stroke 0.3s;
+      stroke-dasharray: 163.3628;
+      stroke-dashoffset: 0;
+    }
+
+    /* Khi gần hết giờ */
+    #timer.warning #timer-fg {
+      stroke: #d32f2f !important;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { stroke-opacity: 1; }
+      50% { stroke-opacity: 0.4; }
+    }
+
+    #answers {
+      max-height: 300px; /* giới hạn chiều cao để tránh quá dài */
+      overflow-y: auto;
+      margin-bottom: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .answer {
+      background: #f1f1f1;
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+      border: 2px solid transparent;
+      user-select: none;
+    }
+
+    .answer:hover {
+      background: #e0f7fa;
+      border-color: #26c6da;
+    }
+
+    .btn-group {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background-color: #00796b;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+      user-select: none;
+    }
+
+    button:hover {
+      background-color: #004d40;
+    }
+
+    #score {
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 18px;
+      color: #00796b;
+    }
+
+    #hint, #explanation {
+      margin-top: 10px;
+      color: #555;
+      font-style: italic;
+      min-height: 36px;
+    }
+
+    @media screen and (max-width: 480px) {
+      .btn-group {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      #question {
+        font-size: 18px;
+        padding-right: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div>Đang tải game...</div>
+  <img src="https://i.gifer.com/YCZH.gif" alt="Đang tải..." />
+</div>
+
+<div class="quiz-container" id="quiz">
+  <div class="icon">🧠</div>
+  <h1>Trò Chơi Đố Vui</h1>
+
+  <div id="question">Câu hỏi đang tải...</div>
+
+  <div id="timer" title="Thời gian còn lại">
+    <svg>
+      <circle id="timer-bg" cx="30" cy="30" r="26"></circle>
+      <circle id="timer-fg" cx="30" cy="30" r="26"></circle>
+    </svg>
+  </div>
+
+  <div id="answers"></div>
+  <div id="hint"></div>
+  <div class="btn-group">
+    <button onclick="showHint()">❓ Trợ giúp</button>
+    <button onclick="nextQuestion()">➡️ Câu tiếp theo</button>
+  </div>
+  <div id="score"></div>
+  <div id="explanation"></div>
+</div>
+
+<script>
+  const questions = [
+    {
+      question: "🦁 Con gì là chúa tể rừng xanh?",
+      answers: ["Con voi", "Con hổ", "Con sư tử", "Con báo"],
+      correct: 2,
+      hint: "🦁 Là vua của muôn loài trong phim Lion King.",
+      explanation: "Con sư tử được gọi là 'chúa tể sơn lâm' nhờ sức mạnh, dáng đi uy nghi và là loài săn mồi đứng đầu chuỗi thức ăn."
+    },
+    {
+      question: "🇻🇳 Thủ đô của Việt Nam là?",
+      answers: ["Hồ Chí Minh", "Đà Nẵng", "Huế", "Hà Nội"],
+      correct: 3,
+      hint: "🏙️ Nơi có Lăng Bác và Hồ Gươm.",
+      explanation: "Hà Nội là thủ đô của Việt Nam từ năm 1945 và là trung tâm chính trị, văn hóa lớn nhất nước."
+    },
+    {
+      question: "🍚 Người Việt thường ăn gì vào bữa sáng?",
+      answers: ["Bánh mì", "Phở", "Cơm tấm", "Tất cả đều đúng"],
+      correct: 3,
+      hint: "🇻🇳 Người Việt có nhiều món sáng đa dạng.",
+      explanation: "Tùy vùng miền, người Việt ăn sáng bằng bánh mì, phở, cơm tấm, bún, xôi... rất phong phú!"
+    },
+    {
+      question: "🧠 Bộ phận nào giúp con người suy nghĩ?",
+      answers: ["Tim", "Gan", "Não", "Phổi"],
+      correct: 2,
+      hint: "🧠 Bộ phận này điều khiển hệ thần kinh.",
+      explanation: "Não bộ điều khiển mọi hoạt động thần kinh và xử lý thông tin – là trung tâm tư duy, trí nhớ và cảm xúc."
+    },
+    {
+      question: "🌍 Trái Đất có hình dạng gì?",
+      answers: ["Vuông", "Dẹt", "Tròn", "Hình tam giác"],
+      correct: 2,
+      hint: "🌐 Nó giống một quả bóng.",
+      explanation: "Trái Đất có hình cầu hơi dẹt ở hai cực – gọi là hình elip – nhưng về cơ bản là hình tròn."
+    }
+  ];
+
+  let currentQuestion = 0;
+  let score = 0;
+  let answered = false;
+
+  // Đồng hồ
+  let timer;
+  let timeLeft = 15;
+  const FULL_DASH_ARRAY = 2 * Math.PI * 26; // Chu vi vòng tròn bán kính 26
+
+  const timerFg = document.getElementById("timer-fg");
+  const timerContainer = document.getElementById("timer");
+
+  function setCircleDashoffset(timeFraction) {
+    const dashoffset = FULL_DASH_ARRAY * (1 - timeFraction);
+    timerFg.style.strokeDashoffset = dashoffset;
+  }
+
+  function startTimer() {
+    timeLeft = 15;
+    updateTimerDisplay();
+    answered = false;
+    timerContainer.classList.remove("warning");
+
+    clearInterval(timer);
+    timer = setInterval(() => {
+      timeLeft--;
+      updateTimerDisplay();
+
+      if (timeLeft <= 5) {
+        timerContainer.classList.add("warning");
+      }
+
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        handleTimeout();
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    timerContainer.setAttribute("title", `Thời gian còn lại: ${timeLeft}s`);
+    const timeFraction = timeLeft / 15;
+    setCircleDashoffset(timeFraction);
+  }
+
+  function handleTimeout() {
+    if (answered) return;
+    answered = true;
+    alert("⏰ Hết giờ! Đáp án đúng là: " + questions[currentQuestion].answers[questions[currentQuestion].correct]);
+    document.getElementById("score").innerText = `🎯 Điểm: ${score}/${questions.length}`;
+    document.getElementById("explanation").innerText = "ℹ️ " + questions[currentQuestion].explanation;
+  }
+
+  function loadQuestion() {
+    const q = questions[currentQuestion];
+    document.getElementById("question").innerText = q.question;
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+    document.getElementById("hint").innerText = "";
+    document.getElementById("explanation").innerText = "";
+    document.getElementById("score").innerText = `🎯 Điểm: ${score}/${questions.length}`;
+
+    q.answers.forEach((ans, i) => {
+      const btn = document.createElement("div");
+      btn.className = "answer";
+      btn.innerText = ans;
+      btn.onclick = () => checkAnswer(i);
+      answersDiv.appendChild(btn);
+    });
+
+    startTimer();
+  }
+
+  function checkAnswer(selected) {
+    if (answered) return;
+    answered = true;
+    clearInterval(timer);
+
+    const q = questions[currentQuestion];
+    const answersDiv = document.getElementById("answers");
+    const children = answersDiv.children;
+
+    if (selected === q.correct) {
+      score++;
+      children[selected].style.backgroundColor = "#a5d6a7"; // xanh lá
+      alert("✅ Chính xác!");
+    } else {
+      children[selected].style.backgroundColor = "#ef9a9a"; // đỏ nhạt
+      children[q.correct].style.backgroundColor = "#a5d6a7"; // xanh lá đáp án đúng
+      alert(`❌ Sai rồi! Đáp án đúng là: ${q.answers[q.correct]}`);
+    }
+
+    document.getElementById("score").innerText = `🎯 Điểm: ${score}/${questions.length}`;
+    document.getElementById("explanation").innerText = "ℹ️ " + q.explanation;
+  }
+
+  function nextQuestion() {
+    if (!answered) {
+      alert("⚠️ Bạn chưa trả lời câu hỏi!");
+      return;
+    }
+    currentQuestion++;
+    if (currentQuestion >= questions.length) {
+      alert(`🎉 Kết thúc! Bạn được ${score} điểm trên ${questions.length} câu.`);
+      currentQuestion = 0;
+      score = 0;
+    }
+    loadQuestion();
+  }
+
+  function showHint() {
+    if (answered) return;
+    alert("💡 Gợi ý: " + questions[currentQuestion].hint);
+  }
+
+  window.onload = () => {
+    setTimeout(() => {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("quiz").style.display = "block";
+      loadQuestion();
+    }, 2500);
+  };
+</script>
+
+</body>
+</html>
